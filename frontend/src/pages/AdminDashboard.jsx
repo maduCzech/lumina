@@ -418,12 +418,16 @@ const AdminDashboard = () => {
                     >
                       <SelectValue placeholder="Select a theme" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/10">
+                    <SelectContent 
+                      className="bg-[#1a1a1a] border-white/10 z-[200]"
+                      position="popper"
+                      sideOffset={4}
+                    >
                       {themes.map((theme) => (
                         <SelectItem 
                           key={theme.id} 
                           value={theme.slug}
-                          className="text-white focus:bg-white/10"
+                          className="text-white focus:bg-white/10 hover:bg-white/10 cursor-pointer"
                         >
                           {theme.name}
                         </SelectItem>
