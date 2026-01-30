@@ -1,0 +1,193 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "Lumina Gallery",
+      "aesthetic": "Liquid Glass Dark Mode",
+      "principles": [
+        "Depth over Flatness: Use layers of glass to create hierarchy.",
+        "Fluidity: Everything should feel like it's floating in a dark void.",
+        "Content is Light: The photos themselves provide the illumination.",
+        "Tactile Interfaces: Buttons and cards should feel like polished crystal."
+      ]
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Space Grotesk, sans-serif",
+        "body": "Manrope, sans-serif",
+        "accent": "Playfair Display, serif"
+      },
+      "scale": {
+        "h1": "text-6xl md:text-8xl font-bold tracking-tighter",
+        "h2": "text-4xl md:text-5xl font-semibold tracking-tight",
+        "h3": "text-2xl md:text-3xl font-medium",
+        "body": "text-base md:text-lg leading-relaxed",
+        "caption": "text-sm text-white/60 uppercase tracking-widest"
+      },
+      "imports": [
+        "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');"
+      ]
+    },
+    "colors": {
+      "palette": {
+        "background": {
+          "base": "#050505",
+          "layer_1": "#0A0A0A",
+          "layer_2": "#121212"
+        },
+        "glass": {
+          "surface_low": "rgba(255, 255, 255, 0.03)",
+          "surface_mid": "rgba(255, 255, 255, 0.07)",
+          "surface_high": "rgba(255, 255, 255, 0.12)",
+          "border_subtle": "rgba(255, 255, 255, 0.08)",
+          "border_highlight": "rgba(255, 255, 255, 0.2)"
+        },
+        "text": {
+          "primary": "#FFFFFF",
+          "secondary": "rgba(255, 255, 255, 0.7)",
+          "muted": "rgba(255, 255, 255, 0.4)"
+        },
+        "accent": {
+          "primary": "#3B82F6",
+          "glow": "rgba(59, 130, 246, 0.5)",
+          "error": "#EF4444",
+          "success": "#10B981"
+        }
+      },
+      "gradients": {
+        "liquid_sheen": "linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)",
+        "dark_void": "radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)"
+      }
+    },
+    "visual_enhancers": {
+      "glassmorphism": {
+        "base": "backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]",
+        "heavy": "backdrop-blur-2xl bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]",
+        "interactive": "hover:bg-white/10 transition-all duration-300 ease-out hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:border-white/30"
+      },
+      "borders": {
+        "radius": "rounded-2xl md:rounded-3xl",
+        "width": "border-[0.5px]"
+      },
+      "shadows": {
+        "glow": "0 0 20px rgba(255, 255, 255, 0.05)",
+        "deep": "0 20px 40px rgba(0, 0, 0, 0.6)"
+      }
+    },
+    "layout_strategies": {
+      "grid_system": {
+        "gallery": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8",
+        "bento": "grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[300px]"
+      },
+      "spacing": {
+        "section_padding": "py-20 md:py-32 px-4 md:px-8",
+        "container_max": "max-w-7xl mx-auto"
+      }
+    },
+    "components": {
+      "Button": {
+        "styles": "relative overflow-hidden rounded-full px-8 py-3 font-medium transition-all duration-300",
+        "variants": {
+          "primary": "bg-white text-black hover:bg-white/90 hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]",
+          "glass": "bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/30 backdrop-blur-md",
+          "ghost": "text-white/70 hover:text-white hover:bg-white/5"
+        }
+      },
+      "Card": {
+        "styles": "group relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:border-white/20"
+      },
+      "Input": {
+        "styles": "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:ring-0 rounded-xl h-12 backdrop-blur-sm"
+      },
+      "Navigation": {
+        "styles": "fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl shadow-2xl"
+      }
+    },
+    "motion": {
+      "transitions": {
+        "default": "transition-all duration-300 ease-out",
+        "slow": "transition-all duration-700 ease-[0.22, 1, 0.36, 1]"
+      },
+      "animations": {
+        "fade_in": "animate-in fade-in duration-700",
+        "slide_up": "animate-in slide-in-from-bottom-8 fade-in duration-700",
+        "scale_in": "animate-in zoom-in-95 fade-in duration-500"
+      }
+    },
+    "image_assets": {
+      "nature": [
+        {
+          "url": "https://images.unsplash.com/photo-1729313874207-e88e285398a4?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Dark moody green plant leaves close up",
+          "category": "nature"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1759383672649-d8422496afb0?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Solitary tree on misty hill",
+          "category": "nature"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1729313343600-094ba8710845?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Tree leaves in dark",
+          "category": "nature"
+        }
+      ],
+      "city": [
+        {
+          "url": "https://images.unsplash.com/photo-1615472846433-4593b99df118?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "White and red stadium lights",
+          "category": "city"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1715614176939-f5c46ae99d04?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Futuristic pier in Gothenburg night",
+          "category": "city"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1730385432794-d56638a61440?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Building with neon signs",
+          "category": "city"
+        }
+      ],
+      "abstract": [
+        {
+          "url": "https://images.unsplash.com/photo-1759392658577-4324fb89b991?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Abstract fluid shapes green blue",
+          "category": "abstract"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1763259012717-6f35b5910805?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Abstract red and blue spheres",
+          "category": "abstract"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1759392658530-aeab2d74a77c?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Abstract metallic waves",
+          "category": "abstract"
+        }
+      ]
+    },
+    "instructions_to_main_agent": {
+      "setup": [
+        "Install 'lucide-react' for icons.",
+        "Install 'framer-motion' for liquid animations.",
+        "Configure 'tailwind.config.js' to extend colors with the palette provided.",
+        "Add the Google Fonts import to 'index.css'."
+      ],
+      "implementation_rules": [
+        "NEVER use solid backgrounds for cards. Always use the 'glass' styles.",
+        "Ensure all text has sufficient contrast against the dark background.",
+        "Use 'Space Grotesk' for all headings and 'Manrope' for body text.",
+        "Implement the 'Masonry Grid' for the main gallery view.",
+        "The 'Admin Login' should look like a secure, frosted glass vault.",
+        "Use the provided image URLs as placeholders for the gallery items.",
+        "Add 'data-testid' to all interactive elements."
+      ],
+      "universal_guidelines": [
+        "Avoid generic centered layouts.",
+        "Create depth through z-index and backdrop-blur.",
+        "Micro-animations on hover are mandatory.",
+        "Use 2-3x more spacing than usual."
+      ]
+    }
+  }
+}
