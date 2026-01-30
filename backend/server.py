@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Request
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +7,13 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-
+import bcrypt
+import jwt
+from functools import wraps
+import shutil
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,55 +23,286 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
+# JWT Configuration
+JWT_SECRET = os.environ.get('JWT_SECRET', 'lumina-gallery-secret-key-2024')
+JWT_ALGORITHM = "HS256"
+
+# Create uploads directory
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Create the main app
 app = FastAPI()
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Pydantic Models
+class AdminCreate(BaseModel):
+    username: str
+    password: str
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class AdminLogin(BaseModel):
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    token: str
+    username: str
+
+class Theme(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str
+    slug: str
+    description: Optional[str] = None
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class Photo(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: Optional[str] = None
+    image_url: str
+    theme: str
+    likes: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-# Add your routes to the router instead of directly to app
+class PhotoResponse(BaseModel):
+    id: str
+    title: str
+    description: Optional[str]
+    image_url: str
+    theme: str
+    likes: int
+    created_at: str
+
+class LikeResponse(BaseModel):
+    photo_id: str
+    likes: int
+    already_liked: bool
+
+# Helper Functions
+def get_client_ip(request: Request) -> str:
+    """Get client IP address from request"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
+def create_token(username: str) -> str:
+    payload = {
+        "sub": username,
+        "exp": datetime.now(timezone.utc).timestamp() + 86400  # 24 hours
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_admin(request: Request) -> dict:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        username = payload.get("sub")
+        admin = await db.admins.find_one({"username": username}, {"_id": 0})
+        if not admin:
+            raise HTTPException(status_code=401, detail="Admin not found")
+        return admin
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Lumina Gallery API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+# Admin Routes
+@api_router.post("/admin/setup", response_model=TokenResponse)
+async def setup_admin(admin_data: AdminCreate):
+    """Initial admin setup - only works if no admin exists"""
+    existing = await db.admins.find_one({})
+    if existing:
+        raise HTTPException(status_code=400, detail="Admin already exists")
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    admin_doc = {
+        "id": str(uuid.uuid4()),
+        "username": admin_data.username,
+        "password_hash": hash_password(admin_data.password),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.admins.insert_one(admin_doc)
+    token = create_token(admin_data.username)
+    return TokenResponse(token=token, username=admin_data.username)
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.post("/admin/login", response_model=TokenResponse)
+async def admin_login(login_data: AdminLogin):
+    """Admin login"""
+    admin = await db.admins.find_one({"username": login_data.username}, {"_id": 0})
+    if not admin or not verify_password(login_data.password, admin["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    token = create_token(login_data.username)
+    return TokenResponse(token=token, username=login_data.username)
+
+@api_router.get("/admin/check")
+async def check_admin_exists():
+    """Check if admin exists"""
+    existing = await db.admins.find_one({})
+    return {"exists": existing is not None}
+
+@api_router.get("/admin/verify")
+async def verify_admin(admin: dict = Depends(get_current_admin)):
+    """Verify admin token"""
+    return {"valid": True, "username": admin["username"]}
+
+# Theme Routes
+@api_router.get("/themes", response_model=List[Theme])
+async def get_themes():
+    """Get all themes"""
+    themes = await db.themes.find({}, {"_id": 0}).to_list(100)
+    if not themes:
+        # Initialize default themes
+        default_themes = [
+            {"id": str(uuid.uuid4()), "name": "Nature", "slug": "nature", "description": "Landscapes and natural beauty"},
+            {"id": str(uuid.uuid4()), "name": "City", "slug": "city", "description": "Urban photography and architecture"},
+            {"id": str(uuid.uuid4()), "name": "Abstract", "slug": "abstract", "description": "Abstract art and creative compositions"},
+            {"id": str(uuid.uuid4()), "name": "Portrait", "slug": "portrait", "description": "People and character studies"},
+            {"id": str(uuid.uuid4()), "name": "Travel", "slug": "travel", "description": "Adventures around the world"},
+        ]
+        await db.themes.insert_many(default_themes)
+        return default_themes
+    return themes
+
+@api_router.post("/themes", response_model=Theme)
+async def create_theme(theme: Theme, admin: dict = Depends(get_current_admin)):
+    """Create a new theme (admin only)"""
+    theme_doc = theme.model_dump()
+    theme_doc["slug"] = theme.name.lower().replace(" ", "-")
+    await db.themes.insert_one(theme_doc)
+    return theme
+
+# Photo Routes
+@api_router.get("/photos", response_model=List[PhotoResponse])
+async def get_photos(theme: Optional[str] = None):
+    """Get all photos, optionally filtered by theme"""
+    query = {}
+    if theme and theme != "all":
+        query["theme"] = theme
     
-    return status_checks
+    photos = await db.photos.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return photos
+
+@api_router.get("/photos/{photo_id}", response_model=PhotoResponse)
+async def get_photo(photo_id: str):
+    """Get a single photo"""
+    photo = await db.photos.find_one({"id": photo_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return photo
+
+@api_router.post("/photos", response_model=PhotoResponse)
+async def upload_photo(
+    request: Request,
+    title: str = Form(...),
+    theme: str = Form(...),
+    description: Optional[str] = Form(None),
+    image: UploadFile = File(...),
+    admin: dict = Depends(get_current_admin)
+):
+    """Upload a new photo (admin only)"""
+    # Generate unique filename
+    file_ext = image.filename.split(".")[-1] if "." in image.filename else "jpg"
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}.{file_ext}"
+    file_path = UPLOAD_DIR / filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+    
+    # Create photo record
+    backend_url = os.environ.get('BACKEND_URL', '')
+    image_url = f"/api/uploads/{filename}"
+    
+    photo = Photo(
+        title=title,
+        description=description,
+        image_url=image_url,
+        theme=theme
+    )
+    
+    photo_doc = photo.model_dump()
+    await db.photos.insert_one(photo_doc)
+    
+    return PhotoResponse(**photo_doc)
+
+@api_router.delete("/photos/{photo_id}")
+async def delete_photo(photo_id: str, admin: dict = Depends(get_current_admin)):
+    """Delete a photo (admin only)"""
+    photo = await db.photos.find_one({"id": photo_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    # Delete file if it exists
+    if photo["image_url"].startswith("/api/uploads/"):
+        filename = photo["image_url"].split("/")[-1]
+        file_path = UPLOAD_DIR / filename
+        if file_path.exists():
+            file_path.unlink()
+    
+    await db.photos.delete_one({"id": photo_id})
+    return {"message": "Photo deleted"}
+
+@api_router.post("/photos/{photo_id}/like", response_model=LikeResponse)
+async def like_photo(photo_id: str, request: Request):
+    """Like a photo (IP-based to prevent spam)"""
+    client_ip = get_client_ip(request)
+    
+    # Check if already liked
+    existing_like = await db.likes.find_one({"photo_id": photo_id, "ip": client_ip})
+    
+    photo = await db.photos.find_one({"id": photo_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    if existing_like:
+        return LikeResponse(photo_id=photo_id, likes=photo["likes"], already_liked=True)
+    
+    # Add like
+    await db.likes.insert_one({
+        "id": str(uuid.uuid4()),
+        "photo_id": photo_id,
+        "ip": client_ip,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update photo likes count
+    new_likes = photo["likes"] + 1
+    await db.photos.update_one({"id": photo_id}, {"$set": {"likes": new_likes}})
+    
+    return LikeResponse(photo_id=photo_id, likes=new_likes, already_liked=False)
+
+@api_router.get("/photos/{photo_id}/liked")
+async def check_liked(photo_id: str, request: Request):
+    """Check if current IP has liked a photo"""
+    client_ip = get_client_ip(request)
+    existing_like = await db.likes.find_one({"photo_id": photo_id, "ip": client_ip})
+    return {"liked": existing_like is not None}
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# Mount uploads directory
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
