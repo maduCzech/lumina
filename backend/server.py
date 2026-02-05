@@ -182,13 +182,46 @@ async def get_themes():
         return default_themes
     return themes
 
+class ThemeCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
 @api_router.post("/themes", response_model=Theme)
-async def create_theme(theme: Theme, admin: dict = Depends(get_current_admin)):
+async def create_theme(theme_data: ThemeCreate, admin: dict = Depends(get_current_admin)):
     """Create a new theme (admin only)"""
+    theme = Theme(
+        name=theme_data.name,
+        slug=theme_data.name.lower().replace(" ", "-"),
+        description=theme_data.description
+    )
     theme_doc = theme.model_dump()
-    theme_doc["slug"] = theme.name.lower().replace(" ", "-")
     await db.themes.insert_one(theme_doc)
     return theme
+
+@api_router.delete("/themes/{theme_slug}")
+async def delete_theme(theme_slug: str, admin: dict = Depends(get_current_admin)):
+    """Delete a theme (admin only)"""
+    result = await db.themes.delete_one({"slug": theme_slug})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Theme not found")
+    return {"message": "Theme deleted"}
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@api_router.post("/admin/change-password")
+async def change_password(data: PasswordChange, admin: dict = Depends(get_current_admin)):
+    """Change admin password"""
+    if not verify_password(data.current_password, admin["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    new_hash = hash_password(data.new_password)
+    await db.admins.update_one(
+        {"username": admin["username"]},
+        {"$set": {"password_hash": new_hash}}
+    )
+    return {"message": "Password changed successfully"}
 
 # Photo Routes
 @api_router.get("/photos", response_model=List[PhotoResponse])
