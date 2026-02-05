@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Heart, X, ChevronLeft, ChevronRight, Settings, Sun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, API } from "../App";
 import { toast } from "sonner";
+import { useTheme } from "../context/ThemeContext";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -14,6 +15,7 @@ const Gallery = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [likedPhotos, setLikedPhotos] = useState({});
   const [loading, setLoading] = useState(true);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     fetchThemes();
@@ -105,43 +107,78 @@ const Gallery = () => {
   }, [selectedPhoto, navigatePhoto]);
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] transition-colors duration-500">
       {/* Floating Navigation */}
       <motion.nav 
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl shadow-2xl"
+        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-full bg-[var(--bg-layer-1)]/80 border border-[var(--glass-border-subtle)] backdrop-blur-xl shadow-2xl"
         data-testid="main-navigation"
       >
+        {/* Theme Toggle */}
+        <motion.button
+          onClick={toggleTheme}
+          className="p-2.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-surface-mid)] transition-all duration-300"
+          whileTap={{ scale: 0.95 }}
+          data-testid="theme-toggle-nav"
+        >
+          <AnimatePresence mode="wait">
+            {theme === "dark" ? (
+              <motion.div
+                key="sun"
+                initial={{ rotate: -90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: 90, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Sun size={18} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="moon"
+                initial={{ rotate: 90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: -90, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Moon size={18} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
+
+        <div className="h-6 w-px bg-[var(--glass-border-subtle)]" />
+
         <button
           onClick={() => setActiveTheme("all")}
           className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
             activeTheme === "all"
-              ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-              : "text-white/70 hover:text-white hover:bg-white/5"
+              ? "bg-[var(--text-primary)] text-[var(--bg-base)] shadow-[0_0_20px_var(--glass-surface-high)]"
+              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-surface-low)]"
           }`}
           data-testid="filter-all"
         >
           All
         </button>
-        {themes.map((theme) => (
+        {themes.map((t) => (
           <button
-            key={theme.id}
-            onClick={() => setActiveTheme(theme.slug)}
+            key={t.id}
+            onClick={() => setActiveTheme(t.slug)}
             className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeTheme === theme.slug
-                ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                : "text-white/70 hover:text-white hover:bg-white/5"
+              activeTheme === t.slug
+                ? "bg-[var(--text-primary)] text-[var(--bg-base)] shadow-[0_0_20px_var(--glass-surface-high)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-surface-low)]"
             }`}
-            data-testid={`filter-${theme.slug}`}
+            data-testid={`filter-${t.slug}`}
           >
-            {theme.name}
+            {t.name}
           </button>
         ))}
+        <div className="h-6 w-px bg-[var(--glass-border-subtle)]" />
         <Link
           to="/admin"
-          className="ml-2 p-2.5 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-all duration-300"
+          className="p-2.5 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-surface-low)] transition-all duration-300"
           data-testid="admin-link"
         >
           <Settings size={18} />
@@ -165,7 +202,7 @@ const Gallery = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto"
+            className="text-[var(--text-secondary)] text-lg md:text-xl max-w-2xl mx-auto"
             data-testid="gallery-subtitle"
           >
             A curated collection of visual stories captured through my lens
@@ -181,7 +218,7 @@ const Gallery = () => {
               {[...Array(8)].map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-[4/5] rounded-3xl bg-white/5 animate-pulse"
+                  className="aspect-[4/5] rounded-3xl bg-[var(--glass-surface-low)] animate-pulse"
                 />
               ))}
             </div>
@@ -191,7 +228,7 @@ const Gallery = () => {
               animate={{ opacity: 1 }}
               className="text-center py-20"
             >
-              <p className="text-white/40 text-lg" data-testid="no-photos-message">
+              <p className="text-[var(--text-muted)] text-lg" data-testid="no-photos-message">
                 No photos yet. Check back soon!
               </p>
             </motion.div>
@@ -227,7 +264,7 @@ const Gallery = () => {
                     
                     {/* Photo Info Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out">
-                      <h3 className="text-xl font-semibold mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <h3 className="text-xl font-semibold mb-1 text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {photo.title}
                       </h3>
                       {photo.description && (
@@ -318,7 +355,7 @@ const Gallery = () => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-semibold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <h2 className="text-2xl font-semibold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                       {selectedPhoto.title}
                     </h2>
                     {selectedPhoto.description && (
