@@ -22,6 +22,36 @@
   --accent-success: #10B981;
 }
 
+/* Light mode */
+.light {
+  --bg-base: #F8F9FA;
+  --bg-layer-1: #FFFFFF;
+  --bg-layer-2: #F0F1F3;
+  --glass-surface-low: rgba(0, 0, 0, 0.02);
+  --glass-surface-mid: rgba(0, 0, 0, 0.04);
+  --glass-surface-high: rgba(0, 0, 0, 0.08);
+  --glass-border-subtle: rgba(0, 0, 0, 0.08);
+  --glass-border-highlight: rgba(0, 0, 0, 0.15);
+  --text-primary: #1A1A1A;
+  --text-secondary: rgba(0, 0, 0, 0.7);
+  --text-muted: rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode (explicit) */
+.dark {
+  --bg-base: #050505;
+  --bg-layer-1: #0A0A0A;
+  --bg-layer-2: #121212;
+  --glass-surface-low: rgba(255, 255, 255, 0.03);
+  --glass-surface-mid: rgba(255, 255, 255, 0.07);
+  --glass-surface-high: rgba(255, 255, 255, 0.12);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-border-highlight: rgba(255, 255, 255, 0.2);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+}
+
 * {
   margin: 0;
   padding: 0;
