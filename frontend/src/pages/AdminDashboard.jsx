@@ -870,7 +870,12 @@ const AdminDashboard = () => {
       </AlertDialog>
 
       {/* Delete Theme Confirmation Dialog */}
-      <AlertDialog open={!!deleteThemeSlug} onOpenChange={() => setDeleteThemeSlug(null)}>
+      <AlertDialog open={!!deleteThemeSlug} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteThemeSlug(null);
+          setShowThemeModal(true);
+        }
+      }}>
         <AlertDialogContent className="bg-[var(--bg-layer-1)] border-[var(--glass-border-subtle)] z-[200]" data-testid="delete-theme-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-[var(--text-primary)]">Delete Theme</AlertDialogTitle>
