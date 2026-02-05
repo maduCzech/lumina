@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 import axios from "axios";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Pages
 import Gallery from "./pages/Gallery";
@@ -26,26 +26,28 @@ api.interceptors.request.use((config) => {
 
 function App() {
   return (
-    <div className="min-h-screen bg-[#050505]">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Gallery />} />
-          <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster 
-        position="bottom-right" 
-        toastOptions={{
-          style: {
-            background: 'rgba(10, 10, 10, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#fff',
-            backdropFilter: 'blur(12px)',
-          },
-        }}
-      />
-    </div>
+    <ThemeProvider>
+      <div className="min-h-screen bg-[var(--bg-base)] transition-colors duration-500">
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Gallery />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{
+            style: {
+              background: 'var(--bg-layer-1)',
+              border: '1px solid var(--glass-border-subtle)',
+              color: 'var(--text-primary)',
+              backdropFilter: 'blur(12px)',
+            },
+          }}
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 
