@@ -826,7 +826,10 @@ const AdminDashboard = () => {
                         )}
                       </div>
                       <button
-                        onClick={() => setDeleteThemeSlug(theme.slug)}
+                        onClick={() => {
+                          setShowThemeModal(false);
+                          setTimeout(() => setDeleteThemeSlug(theme.slug), 100);
+                        }}
                         className="p-2 rounded-full text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
                         data-testid={`delete-theme-${theme.slug}`}
                       >
