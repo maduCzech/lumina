@@ -234,6 +234,7 @@ const AdminDashboard = () => {
       toast.error("Failed to delete theme");
     } finally {
       setDeleteThemeSlug(null);
+      setShowThemeModal(true);
     }
   };
 
