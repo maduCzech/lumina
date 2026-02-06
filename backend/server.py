@@ -121,6 +121,16 @@ async def get_current_admin(request: Request) -> dict:
 async def root():
     return {"message": "Lumina Gallery API na Cloudinary"}
 
+# Admin Routes
+@api_router.get("/admin/check")
+async def check_admin_exists():
+    existing = await db.admins.find_one({})
+    return {"exists": existing is not None}
+
+@api_router.get("/admin/verify")
+async def verify_admin(admin: dict = Depends(get_current_admin)):
+    return {"valid": True, "username": admin["username"]}
+
 @api_router.post("/admin/setup", response_model=TokenResponse)
 async def setup_admin(admin_data: AdminCreate):
     existing = await db.admins.find_one({})
@@ -138,7 +148,15 @@ async def admin_login(login_data: AdminLogin):
 
 @api_router.get("/themes", response_model=List[Theme])
 async def get_themes():
-    return await db.themes.find({}, {"_id": 0}).to_list(100)
+    themes = await db.themes.find({}, {"_id": 0}).to_list(100)
+    if not themes:
+        default_themes = [
+            {"id": str(uuid.uuid4()), "name": "Nature", "slug": "nature", "description": "Nature"},
+            {"id": str(uuid.uuid4()), "name": "City", "slug": "city", "description": "City"},
+        ]
+        await db.themes.insert_many(default_themes)
+        return default_themes
+    return themes
 
 @api_router.post("/photos", response_model=PhotoResponse)
 async def upload_photo(
@@ -149,7 +167,6 @@ async def upload_photo(
     image: UploadFile = File(...),
     admin: dict = Depends(get_current_admin)
 ):
-    """Nahrávání přímo na Cloudinary"""
     try:
         file_content = await image.read()
         upload_result = cloudinary.uploader.upload(
@@ -186,10 +203,8 @@ async def like_photo(photo_id: str, request: Request):
     client_ip = get_client_ip(request)
     photo = await db.photos.find_one({"id": photo_id})
     if not photo: raise HTTPException(status_code=404, detail="Photo not found")
-    
     if await db.likes.find_one({"photo_id": photo_id, "ip": client_ip}):
         return LikeResponse(photo_id=photo_id, likes=photo["likes"], already_liked=True)
-    
     await db.likes.insert_one({"id": str(uuid.uuid4()), "photo_id": photo_id, "ip": client_ip})
     new_likes = photo["likes"] + 1
     await db.photos.update_one({"id": photo_id}, {"$set": {"likes": new_likes}})
